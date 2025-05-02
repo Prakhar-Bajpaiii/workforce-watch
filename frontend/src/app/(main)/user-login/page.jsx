@@ -18,14 +18,15 @@ const Login = () => {
         },
         onSubmit: (values) => {
             console.log(values);
-            axios.post(`${process.env.NEXT_PUBLIC_API_URL}`, values)
+            axios.post(`${process.env.NEXT_PUBLIC_API_URL}/user/authenticate`, values)
                 .then((res) => {
                     toast.success('Login Successfull');
                     // setUserLoggedIn(true)
                     // setUserLoggedIn(data)
-                    const data = res.data
-                    localStorage.setItem('user', JSON.stringify(data))
-                    document.cookie = "token=" + data._id
+                    const data = res.data;
+                    console.log(data);
+                    localStorage.setItem('manager', data.token)
+                    document.cookie = "token=" + data.token
                     router.push('/manager/manage-employee')
 
                 }).catch((err) => {

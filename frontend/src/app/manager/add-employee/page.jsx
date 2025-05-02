@@ -41,7 +41,11 @@ const router = useRouter()
     onSubmit: (values) => {
       console.log('Form submitted:', values); // Add this to debug
       // console.log(`${NEXT_PUBLIC_API_URL}/addemployee/add`);
-      axios.post(`${process.env.NEXT_PUBLIC_API_URL}/employee/add`, values)
+      axios.post(`${process.env.NEXT_PUBLIC_API_URL}/employee/add`, values, {
+        headers: {
+          'x-auth-token': localStorage.getItem('manager'),
+        }
+      })
         .then((result) => {
           toast.success('User Registered Successfully');
           router.push('/manager/manage-employee');

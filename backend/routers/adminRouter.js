@@ -32,6 +32,15 @@ router.post('/authenticate', (req, res) => {
             res.status(500).json(err);
         });
 })
+router.delete('/delete/:id', (req, res) => {
+    Model.findByIdAndDelete(req.params.id)
+        .then((result) => {
+            if (result) res.status(200).json(result);
+            else res.status(404).json({ message: 'user not found' });
+        }).catch((err) => {
+            res.status(500).json(err);
+        });
+});
 
 router.get('/authorise', (req,res) => {
     res.status(200).json({ allowed:true })

@@ -1,14 +1,14 @@
 'use client';
 import axios from 'axios';
 import { useFormik } from 'formik';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';// import { useState } from 'react';
 import React from 'react'
 import toast from 'react-hot-toast';
 import * as Yup from 'yup'
 
 function signup() {
 
-  const router = useRouter();
+  const router = useRouter(); // Initialize the router
 
   const LoginSchema = Yup.object().shape({
     email: Yup.string()
@@ -39,7 +39,7 @@ function signup() {
       axios.post(`${process.env.NEXT_PUBLIC_API_URL}/user/add`, values)
         .then((result) => {
           toast.success('User Registered Successfully');
-          router.push('/user-login');
+          router.push('/user-login');// Redirect to login page after successful signup
         }).catch((err) => {
           console.log(err);
           toast.error('Something went wrong');

@@ -1,4 +1,4 @@
-const { model, Schema } = require('../connection');
+const { model, Schema, Types } = require('../connection');
 
 const mySchema = new Schema({
     name: String,
@@ -14,7 +14,7 @@ const mySchema = new Schema({
     manager: String,
     team: String,
     Address: String,   
-    
+    manager: { type: Types.ObjectId, ref: 'user' },
     createdAt: { type: Date, default: Date.now }
 });
 
