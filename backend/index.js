@@ -6,12 +6,15 @@ const EmployeeRouter = require('./routers/employeeRouter');
 const ManagerRouter = require('./routers/managerRouter');
 const AddemployeeRouter = require('./routers/addemployeeRouter');
 const TaskRouter = require('./routers/taskRouter');
+const authRouter = require('./routers/authRouter');
+const sessionRouter = require('./routers/sessionRouter');
 
 const app = express();
 const port = 5000;
 
 app.use(cors({
-    origin: ['http://localhost:3000']
+    origin: ['http://localhost:3000'],
+    credentials: true,
 }))
 
 app.use(express.json());
@@ -20,8 +23,12 @@ app.use('/user', UserRouter);
 app.use('/task', TaskRouter);
 app.use('/admin', AdminRouter);
 app.use('/employee', EmployeeRouter);
+
 app.use('/manager', ManagerRouter);
-// app.use('/addemployee', AddemployeeRouter);
+app.use('/webauthn', authRouter);
+app.use('/session', sessionRouter);
+
+//app.use('/addemployee', AddemployeeRouter);
 app.get('/', (req, res) => {
     console.log('response from express');
 })

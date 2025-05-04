@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.1.0",
     "axios": "^1.7.9",
     "formik": "^2.4.6",
     "next": "15.1.6",
