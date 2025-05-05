@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@fingerprintjs/fingerprintjs-pro-react": "^2.6.3",
     "@simplewebauthn/browser": "^13.1.0",
     "axios": "^1.7.9",
     "formik": "^2.4.6",
