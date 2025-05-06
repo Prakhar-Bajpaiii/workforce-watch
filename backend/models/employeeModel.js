@@ -7,6 +7,7 @@ const mySchema = new Schema({
     password: String,
     shift: String,
     designation: String,
+    faceDescriptor: Array,
     worklocation: String,
     gender: String,
     dateofBirth: String,
