@@ -2,12 +2,16 @@
 import axios from 'axios';
 import { useFormik } from 'formik';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import * as Yup from 'yup';
+import FaceRecognition from '@/components/FaceRecognition';
 
 function Signup() {
   const router = useRouter();
+  const [faceDescriptor, setFaceDescriptor] = useState(null);
+  const [showFaceCapture, setShowFaceCapture] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
 
   const LoginSchema = Yup.object().shape({
     email: Yup.string()
@@ -40,20 +44,46 @@ function Signup() {
       designation: '',
     },
     onSubmit: (values) => {
-      axios.post(`${process.env.NEXT_PUBLIC_API_URL}/employee/add`, values, {
+      // Prevent submission if face registration is not complete
+      if (!faceDescriptor) {
+        toast.error('Face registration is mandatory. Please complete face registration first.');
+        setShowFaceCapture(true);
+        return;
+      }
+
+      // Add face descriptor to form data
+      const submitData = { 
+        ...values,
+        faceDescriptor: Array.from(faceDescriptor)
+      };
+
+      axios.post(`${process.env.NEXT_PUBLIC_API_URL}/employee/add`, submitData, {
         headers: {
           'x-auth-token': localStorage.getItem('manager'),
         }
       })
         .then(() => {
-          toast.success('User Registered Successfully');
+          toast.success('Employee Registered Successfully');
           router.push('/manager/manage-employee');
-        }).catch(() => {
+        }).catch((err) => {
+          console.error(err);
           toast.error('Something went wrong');
         });
     },
     validationSchema: LoginSchema
   });
+
+  const handleFaceDetected = (descriptor) => {
+    if (registrationComplete) return; // Ignore further detections once complete
+    setFaceDescriptor(descriptor);
+    setRegistrationComplete(true);
+    setShowFaceCapture(false); // Hide camera after successful registration
+    toast.success('Face registered successfully');
+  };
+
+  const toggleFaceCapture = () => {
+    setShowFaceCapture(!showFaceCapture);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-300 py-8">
@@ -199,9 +229,44 @@ function Signup() {
               <div className="text-red-500 text-sm mt-1">{signupForm.errors.password}</div>
             )}
           </div>
+          
+          {/* Face Registration Section - Now Mandatory */}
+          <div className="border-t pt-4 mt-4">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-medium text-gray-800">
+                Face Registration <span className="text-red-500 text-sm ml-1">(Required)</span>
+              </h3>
+              <button 
+                type="button"
+                onClick={toggleFaceCapture}
+                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 transition"
+              >
+                {showFaceCapture ? 'Hide Camera' : 'Show Camera'}
+              </button>
+            </div>
+            
+            {showFaceCapture && (
+              <div className="mb-4 border rounded-lg p-2">
+                <FaceRecognition onFaceDetected={handleFaceDetected} />
+              </div>
+            )}
+            
+            <div className="mt-2">
+              <div className={`p-2 rounded-md ${registrationComplete ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {registrationComplete 
+                  ? '✅ Face registration complete! You can now submit the form.' 
+                  : '⚠️ Face registration is mandatory. Please complete face registration before submitting.'}
+              </div>
+            </div>
+          </div>
+          
           <button
             type="submit"
-            className="w-full py-3 px-4 font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+            className={`w-full py-3 px-4 font-semibold rounded-lg ${
+              registrationComplete 
+                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                : 'bg-gray-400 text-gray-700 cursor-not-allowed'
+            } transition`}
           >
             Add Employee
           </button>
