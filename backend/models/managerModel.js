@@ -5,11 +5,7 @@ const mySchema = new Schema({
     email: String,
     contact: String,
     password: String,
-    
-   
-createdAt: { type: Date, default: Date.now }
-
-
+    createdAt: { type: Date, default: Date.now }
 });
 
 module.exports = model('manager', mySchema);

@@ -1,49 +1,29 @@
-const mongoose = require('mongoose');
+const { Schema, model } = require('../connection');
 
-const sessionSchema = new mongoose.Schema({
-  employee: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'employee',
-    required: true,
-  },
-  date: {
-    type: Date,
-    required: true,
-    default: () => new Date().setHours(0,0,0,0), // midnight today
-  },
-  loginTime: {
-    type: Date,
-    required: true,
-  },
-  logoutTime: {
-    type: Date,
-  },
-  durationMinutes: {
-    type: Number,
-    default: 0,
-  },
-  status: {
-    type: String,
-    enum: ['Present', 'Absent', 'Half Day', 'On Leave'],
-    default: 'Present',
-  },
-  notes: {
-    type: String,
-  },
-  screenRecordings: [
-    {
-      url: { type: String, required: true }, // URL or path to the screen recording file
-      startedAt: { type: Date },
-      endedAt: { type: Date }
-    }
-  ],
-  videoRecordings: [
-    {
-      url: { type: String, required: true }, // URL or path to the video recording file
-      startedAt: { type: Date },
-      endedAt: { type: Date }
-    }
-  ]
+const recordingSchema = new Schema({
+  filename: String,
+  path: String,
+  size: Number,
+  mimetype: String,
+  timestamp: { type: Date, default: Date.now },
+  url: String
 });
 
-module.exports = mongoose.model('session', sessionSchema);
+const sessionSchema = new Schema({
+  employee: { type: Schema.Types.ObjectId, ref: 'employee', required: true },
+  date: { type: Date, default: Date.now },
+  status: { type: String, default: 'active' },
+  loginTime: { type: Date, default: Date.now },
+  logoutTime: { type: Date },
+  screenRecordings: [recordingSchema],
+  audioRecordings: [recordingSchema],
+  videoRecordings: [recordingSchema],
+  notes: String,
+  location: {
+    latitude: String,
+    longitude: String,
+    address: String
+  }
+});
+
+module.exports = model('session', sessionSchema);
