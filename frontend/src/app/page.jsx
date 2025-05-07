@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import React from 'react'
 
 const Home = () => {
@@ -71,22 +72,22 @@ const Home = () => {
             </div>
             <nav className="flex items-center justify-center gap-4 text-sm sm:gap-6">
               <a
-                href="javascript:void(0)"
+                href="#page-footer"
                 className="font-semibold text-gray-400 hover:text-white"
               >
-                <span>Features</span>
+                <span>About</span>
               </a>
               <a
-                href="javascript:void(0)"
+                href="#page-header"
                 className="font-semibold text-gray-400 hover:text-white"
               >
-                <span>Pricing</span>
+                <span>Home</span>
               </a>
               <a
-                href="javascript:void(0)"
+                href="#hihi"
                 className="font-semibold text-gray-400 hover:text-white"
               >
-                <span>Contact</span>
+                <span > Empoyees</span>
               </a>
               <a
                 href="/user-login"
@@ -183,7 +184,7 @@ const Home = () => {
               Powerful Tools
             </h2>
             <h3 className="mx-auto text-lg font-medium text-gray-600 md:text-xl md:leading-relaxed lg:w-2/3">
-              We built the best tools to elevate your marketing efforts.
+              We built the best website to elevate your project efforts.
             </h3>
           </div>
           {/* END Heading */}
@@ -264,45 +265,44 @@ const Home = () => {
       {/* How it works */}
       <div className="relative bg-white">
         <div className="absolute inset-0 skew-y-1 bg-blue-900" />
-        <div className="relative container mx-auto space-y-16 px-4 py-16 lg:px-8 lg:py-32 xl:max-w-7xl">
+        <div id="hihi" className="relative container mx-auto space-y-16 px-4 py-16 lg:px-8 lg:py-32 xl:max-w-7xl">
           {/* Heading */}
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-white md:text-4xl">
-              How it works?
+            <h2 className="text-3xl font-extrabold text-white md:text-4xl ">
+              WORK IN EMPLOYEES
             </h2>
           </div>
           {/* END Heading */}
           {/* Steps */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-            <div className="rounded-3xl bg-white/5 p-10 shadow-xs transition hover:bg-white/10">
+          <Link href="/user-signup"  className="rounded-3xl bg-white/5 p-10 shadow-xs transition hover:bg-white/10 sm:col-span-2 lg:col-span-1">
               <svg
-                className="hi-solid hi-desktop-computer mb-5 inline-block h-12 w-12 text-blue-300"
+                className="hi-solid hi-pencil mb-5 inline-block h-12 w-12 text-blue-300"
                 fill="currentColor"
                 viewBox="0 0 20 20"
                 xmlns="http://www.w3.org/2000/svg"
+                
               >
-                <path
-                  fillRule="evenodd"
-                  d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z"
-                  clipRule="evenodd"
-                />
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
               </svg>
               <h4 className="mb-2 text-lg font-bold text-white">
-                1. Manage Employee
+                1. Create Account
               </h4>
               <p className="text-sm leading-relaxed text-white/75">
                 Vestibulum ullamcorper, odio sed rhoncus imperdiet, enim elit
                 sollicitudin orci, eget dictum leo mi nec lectus. Nam commodo
                 turpis id lectus scelerisque vulputate.
               </p>
-            </div>
-            <div className="rounded-3xl bg-white/5 p-10 shadow-xs transition hover:bg-white/10">
+            </Link>
+           
+            <Link href="/manager/add-employee" className="rounded-3xl bg-white/5 p-10 shadow-xs transition hover:bg-white/10">
               <svg
                 stroke="currentColor"
                 fill="none"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
                 className="hi-outline hi-cube mb-5 inline-block h-12 w-12 text-blue-300"
+                
               >
                 <path
                   strokeLinecap="round"
@@ -319,25 +319,31 @@ const Home = () => {
                 sollicitudin orci, eget dictum leo mi nec lectus. Nam commodo
                 turpis id lectus scelerisque vulputate.
               </p>
-            </div>
-            <div className="rounded-3xl bg-white/5 p-10 shadow-xs transition hover:bg-white/10 sm:col-span-2 lg:col-span-1">
+            </Link>
+            <Link href="/manager/manage-employee" className="rounded-3xl bg-white/5 p-10 shadow-xs transition hover:bg-white/10">
               <svg
-                className="hi-solid hi-pencil mb-5 inline-block h-12 w-12 text-blue-300"
+                className="hi-solid hi-desktop-computer mb-5 inline-block h-12 w-12 text-blue-300"
                 fill="currentColor"
                 viewBox="0 0 20 20"
                 xmlns="http://www.w3.org/2000/svg"
+                
               >
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                <path
+                  fillRule="evenodd"
+                  d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z"
+                  clipRule="evenodd"
+                />
               </svg>
               <h4 className="mb-2 text-lg font-bold text-white">
-                3. Add task
+                3. Manage Employee
               </h4>
               <p className="text-sm leading-relaxed text-white/75">
                 Vestibulum ullamcorper, odio sed rhoncus imperdiet, enim elit
                 sollicitudin orci, eget dictum leo mi nec lectus. Nam commodo
                 turpis id lectus scelerisque vulputate.
               </p>
-            </div>
+            </Link>
+            
           </div>
           {/* END Steps */}
         </div>
