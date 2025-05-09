@@ -137,6 +137,7 @@ export default function FaceRecognition({ onFaceDetected, isProcessing = false, 
     }
   };
 
+  // Update the handleVideoPlay function with better null checks
   const handleVideoPlay = () => {
     if (intervalId || initializing || !videoRef.current || !modelsLoaded) {
       console.log("Not setting up detection - conditions not met:", 
@@ -146,8 +147,16 @@ export default function FaceRecognition({ onFaceDetected, isProcessing = false, 
     
     console.log("Video playing, setting up detection interval");
     const newIntervalId = setInterval(async () => {
-      if (!videoRef.current || !canvasRef.current || !streamRef.current || initializing || !modelsLoaded) return;
-      if (isProcessing) return; // Skip detection if we're already processing
+      // First ensure all refs are valid
+      if (!videoRef.current || !canvasRef.current || !streamRef.current || initializing || !modelsLoaded) {
+        console.log("Skipping detection cycle - missing required elements");
+        return;
+      }
+      
+      if (isProcessing) {
+        console.log("Skipping detection cycle - already processing");
+        return;
+      }
       
       // Check if we're in cooldown period
       const now = Date.now();
@@ -156,6 +165,12 @@ export default function FaceRecognition({ onFaceDetected, isProcessing = false, 
       }
       
       try {
+        // Verify that canvas ref still exists before proceeding
+        if (!canvasRef.current) {
+          console.log("Canvas no longer available");
+          return;
+        }
+        
         // Use TinyFaceDetector instead of SsdMobilenetv1 or TinyYolov2
         const options = new faceapi.TinyFaceDetectorOptions({ 
           inputSize: 416,  // Recommended for TinyFaceDetector
@@ -167,27 +182,54 @@ export default function FaceRecognition({ onFaceDetected, isProcessing = false, 
           .withFaceLandmarks()
           .withFaceDescriptors();
         
-        // Clear the canvas first
+        // Double-check canvas ref still exists after async operation
+        if (!canvasRef.current) {
+          console.log("Canvas no longer available after face detection");
+          return;
+        }
+        
+        // Clear the canvas first - with extra null checks
         const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
-        context.clearRect(0, 0, canvas.width, canvas.height);
+        if (canvas) {
+          const context = canvas.getContext('2d');
+          if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+          } else {
+            console.log("Could not get 2d context from canvas");
+            return;
+          }
+        } else {
+          console.log("Canvas element is null");
+          return;
+        }
         
         if (detections.length > 0) {
           setFaceDetected(true);
           
-          faceapi.matchDimensions(canvas, {
-            width: videoRef.current.width,
-            height: videoRef.current.height
-          });
+          // Skip rendering if video dimensions are not available
+          if (!videoRef.current.width || !videoRef.current.height) {
+            console.log("Video dimensions not available");
+            return;
+          }
           
-          const resizedDetections = faceapi.resizeResults(detections, {
-            width: videoRef.current.width,
-            height: videoRef.current.height
-          });
-          
-          // Draw face detections
-          faceapi.draw.drawDetections(canvas, resizedDetections);
-          faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+          // Safe dimensions matching
+          try {
+            faceapi.matchDimensions(canvas, {
+              width: videoRef.current.width || canvas.width,
+              height: videoRef.current.height || canvas.height
+            });
+            
+            const resizedDetections = faceapi.resizeResults(detections, {
+              width: videoRef.current.width || canvas.width,
+              height: videoRef.current.height || canvas.height
+            });
+            
+            // Draw face detections
+            faceapi.draw.drawDetections(canvas, resizedDetections);
+            faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+          } catch (drawError) {
+            console.error("Error drawing detections:", drawError);
+          }
           
           if (onFaceDetected && !isProcessing) {
             setMessage('Face detected! Processing...');
@@ -207,6 +249,44 @@ export default function FaceRecognition({ onFaceDetected, isProcessing = false, 
     setIntervalId(newIntervalId);
   };
 
+  // Add a useEffect to ensure canvas dimensions match video dimensions
+  useEffect(() => {
+    // This effect ensures the canvas size is set correctly when video loads
+    const updateCanvasDimensions = () => {
+      if (videoRef.current && canvasRef.current) {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        
+        // Set canvas dimensions based on actual video element dimensions
+        if (video.offsetWidth && video.offsetHeight) {
+          canvas.width = video.offsetWidth;
+          canvas.height = video.offsetHeight;
+          console.log(`Canvas dimensions updated to: ${canvas.width}x${canvas.height}`);
+        } else {
+          // Fallback if video dimensions aren't available yet
+          canvas.width = 640;
+          canvas.height = 480;
+        }
+      }
+    };
+    
+    if (isActive && modelsLoaded && videoRef.current) {
+      // Set initial dimensions
+      updateCanvasDimensions();
+      
+      // Listen for video loading to update canvas size
+      const videoElement = videoRef.current;
+      videoElement.addEventListener('loadeddata', updateCanvasDimensions);
+      
+      // Clean up event listener
+      return () => {
+        if (videoElement) {
+          videoElement.removeEventListener('loadeddata', updateCanvasDimensions);
+        }
+      };
+    }
+  }, [isActive, modelsLoaded]);
+
   return (
     <div className="relative w-full max-w-lg mx-auto">
       {isActive ? (
@@ -216,7 +296,7 @@ export default function FaceRecognition({ onFaceDetected, isProcessing = false, 
             <p className="text-gray-700 text-center">{message}</p>
           </div>
         ) : (
-          <>
+          <div className="relative">
             <video
               ref={videoRef}
               autoPlay
@@ -224,19 +304,28 @@ export default function FaceRecognition({ onFaceDetected, isProcessing = false, 
               muted
               width={640}
               height={480}
+              onLoadedMetadata={(e) => {
+                // Update canvas dimensions when video metadata is loaded
+                if (canvasRef.current) {
+                  canvasRef.current.width = e.target.videoWidth || 640;
+                  canvasRef.current.height = e.target.videoHeight || 480;
+                }
+              }}
               onPlay={handleVideoPlay}
               className="rounded-lg w-full"
             />
-            <canvas
-              ref={canvasRef}
-              width={640}
-              height={480}
-              className="absolute top-0 left-0 w-full h-auto"
-            />
+            {videoRef.current && (
+              <canvas
+                ref={canvasRef}
+                width={640}
+                height={480}
+                className="absolute top-0 left-0 w-full h-full"
+              />
+            )}
             <p className={`mt-2 text-center ${faceDetected ? 'text-green-500' : 'text-red-500'}`}>
               {message}
             </p>
-          </>
+          </div>
         )
       ) : (
         <div className="rounded-lg bg-gray-100 w-full h-[300px] flex items-center justify-center">
