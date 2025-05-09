@@ -75,20 +75,20 @@ router.post('/verify-face', (req, res) => {
         return res.status(401).json({ message: 'Authorization token required' });
     }
     // console.log(req.body);
-    
+
     try {
         // Verify the token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         // Get the submitted face descriptor
         let { descriptor } = req.body;
-        
+
         // Convert descriptor object to array if needed
         if (descriptor && typeof descriptor === 'object' && !Array.isArray(descriptor)) {
             // Convert object with numeric keys to array
             const descriptorArray = [];
             const keys = Object.keys(descriptor).sort((a, b) => parseInt(a) - parseInt(b));
-            
+
             for (const key of keys) {
                 descriptorArray.push(descriptor[key]);
             }
@@ -104,7 +104,7 @@ router.post('/verify-face', (req, res) => {
 
         // console.log("Descriptor length:", descriptor.length);
         // console.log(decoded);
-        
+
         // Find the user by ID from the token
         Model.findById(decoded.id)
             .then((user) => {
@@ -126,7 +126,7 @@ router.post('/verify-face', (req, res) => {
                 // Compare submitted descriptor with stored descriptors
                 // Using Euclidean distance for face descriptor comparison
                 // A lower distance means more similar faces
-                const THRESHOLD = 0.4; // Adjust threshold based on testing
+                const THRESHOLD = 0.6; // Adjust threshold based on testing
 
                 // Convert the user's faceDescriptor to array if it's an object with numeric keys
                 let storedDescriptorArray;
@@ -184,7 +184,7 @@ router.post('/verify-face', (req, res) => {
 // Helper function to calculate Euclidean distance between two descriptors
 function calculateDistance(descriptor1, descriptor2) {
     console.log(descriptor1.length, descriptor2.length);
-    
+
     if (descriptor1.length !== descriptor2.length) {
         throw new Error('Descriptor dimensions do not match');
     }
@@ -202,7 +202,7 @@ function calculateDistance(descriptor1, descriptor2) {
 router.post('/register-face', (req, res) => {
     // Extract token from headers
     const token = req.headers['x-auth-token'];
-    
+
     if (!token) {
         return res.status(401).json({ message: 'Authorization token required' });
     }
@@ -210,16 +210,16 @@ router.post('/register-face', (req, res) => {
     try {
         // Verify the token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
+
         // Get the submitted face descriptor
         let { descriptor } = req.body;
-        
+
         // Convert descriptor object to array if needed
         if (descriptor && typeof descriptor === 'object' && !Array.isArray(descriptor)) {
             // Convert object with numeric keys to array
             const descriptorArray = [];
             const keys = Object.keys(descriptor).sort((a, b) => parseInt(a) - parseInt(b));
-            
+
             for (const key of keys) {
                 descriptorArray.push(descriptor[key]);
             }
@@ -227,7 +227,7 @@ router.post('/register-face', (req, res) => {
         }
 
         if (!descriptor || !Array.isArray(descriptor)) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 message: 'Invalid face descriptor format'
             });
         }
@@ -235,27 +235,27 @@ router.post('/register-face', (req, res) => {
         // Find and update the user with the new face descriptor
         Model.findByIdAndUpdate(
             decoded.id,
-            { 
+            {
                 $push: { faceDescriptor: descriptor }
             },
             { new: true }
         )
-        .then((result) => {
-            if (result) {
-                res.status(200).json({ 
-                    message: 'Face descriptor registered successfully' 
+            .then((result) => {
+                if (result) {
+                    res.status(200).json({
+                        message: 'Face descriptor registered successfully'
+                    });
+                } else {
+                    res.status(404).json({ message: 'User not found' });
+                }
+            })
+            .catch((err) => {
+                console.error('Error registering face descriptor:', err);
+                res.status(500).json({
+                    message: 'Error registering face descriptor',
+                    error: err.message
                 });
-            } else {
-                res.status(404).json({ message: 'User not found' });
-            }
-        })
-        .catch((err) => {
-            console.error('Error registering face descriptor:', err);
-            res.status(500).json({ 
-                message: 'Error registering face descriptor', 
-                error: err.message
             });
-        });
     } catch (err) {
         console.error('Token verification error:', err);
         res.status(401).json({ message: 'Invalid or expired token' });
@@ -264,14 +264,14 @@ router.post('/register-face', (req, res) => {
 
 router.get('/getbyemployee/:id', (req, res) => {
     Task.find({ assignedTo: req.params.id })
-      .then((tasks) => res.status(200).json(tasks))
-      .catch((err) => res.status(500).json(err));
-  });
+        .then((tasks) => res.status(200).json(tasks))
+        .catch((err) => res.status(500).json(err));
+});
 
 router.get('/getbymanager', verifyToken, (req, res) => {
     // req.user.id should be set by your verify-token middleware
     console.log(req.user);
-    
+
     Model.find({ manager: req.user.id })
         .then((employees) => res.status(200).json(employees))
         .catch((err) => res.status(500).json(err));
@@ -286,8 +286,8 @@ router.get('/profile', verifyToken, (req, res) => {
         .catch((err) => res.status(500).json(err));
 });
 
-router.get('/authorise', (req,res) => {
-    res.status(200).json({ allowed:true })
+router.get('/authorise', (req, res) => {
+    res.status(200).json({ allowed: true })
 })
 
 module.exports = router;
