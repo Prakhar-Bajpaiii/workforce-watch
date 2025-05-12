@@ -10,6 +10,21 @@ const path = require('path');
 // Create a new session (employee login)
 router.post('/create', verifyToken, async (req, res) => {
   try {
+    // First check if the employee already has an active session
+    const existingActiveSession = await Session.findOne({
+      employee: req.user.id,
+      logoutTime: { $exists: false }  // This finds sessions without a logoutTime
+    });
+
+    if (existingActiveSession) {
+      // Return the existing active session instead of creating a new one
+      return res.status(200).json({
+        ...existingActiveSession.toObject(),
+        message: "You already have an active session"
+      });
+    }
+
+    // If no active session exists, create a new one
     const session = new Session({
       employee: req.user.id,
       loginTime: req.body.loginTime || new Date(),

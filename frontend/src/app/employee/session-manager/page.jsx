@@ -27,6 +27,9 @@ const SessionManager = () => {
   const [recordingInterval, setRecordingInterval] = useState(null);
   const [recordingBlobs, setRecordingBlobs] = useState([]);
   
+  // Add this new state to track session creation status
+  const [isSessionActionInProgress, setIsSessionActionInProgress] = useState(false);
+  
   // Refs for media
   const videoRef = useRef();
   const canvasRef = useRef();
@@ -275,68 +278,10 @@ const SessionManager = () => {
     fetchSessions();
   }, [fetchSessions]);
 
-  // Start session after face verification
-  const startSession = async () => {
-    // Reset state
-    setVerificationMessage(null);
-    setPendingAction('start');
-    setShowFaceVerification(true);
-    setFaceMatched(false);
-    setCameraActive(true);
-  };
-
-  // End session after face verification
-  const endSession = async () => {
-    // Reset state
-    setVerificationMessage(null);
-    setPendingAction('end');
-    setShowFaceVerification(true);
-    setFaceMatched(false);
-    setCameraActive(true);
-  };
-
-  // Process the actual session start/end after successful face verification
-  const handleVerificationSuccess = async () => {
-    // First turn off camera
-    setCameraActive(false);
-    setShowFaceVerification(false);
-    
-    try {
-      if (pendingAction === 'start') {
-        const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/session/create`, {}, {
-          headers: { 'x-auth-token': token }
-        });
-        setActiveSession(res.data);
-        toast.success('Session started!');
-        
-        // Optional: Auto-start recording when session starts
-        // startRecording('both');
-      } else if (pendingAction === 'end' && activeSession) {
-        // If recording, stop it before ending session
-        if (isRecording) {
-          stopRecording();
-        }
-        
-        await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/session/update/${activeSession._id}`, {
-          logoutTime: new Date()
-        }, {
-          headers: { 'x-auth-token': token }
-        });
-        setActiveSession(null);
-        toast.success('Session ended!');
-      }
-    } catch (error) {
-      toast.error(`Failed to ${pendingAction} session`);
-      console.error(error);
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  // Handle face detection from FaceRecognition component
+  // Debounced face detection handler
   const handleFaceDetected = async (descriptor) => {
-    // Add these checks to prevent multiple calls
-    if (faceMatched || isVerifying || !showFaceVerification) {
+    // Check if there's already a verification or session action in progress
+    if (faceMatched || isVerifying || !showFaceVerification || isSessionActionInProgress) {
       return;
     }
     
@@ -347,6 +292,7 @@ const SessionManager = () => {
       await verifyFace(descriptor);
     } catch (error) {
       console.error("Error during face verification:", error);
+      setIsVerifying(false);
     }
   };
 
@@ -378,11 +324,16 @@ const SessionManager = () => {
         });
         setFaceMatched(true);
         
+        // Set session action flag to prevent duplicate starts
+        setIsSessionActionInProgress(true);
+        
         // Short delay before proceeding to give user visual feedback
         setTimeout(() => {
           // Only proceed if we're still in verification mode
           if (showFaceVerification && pendingAction) {
             handleVerificationSuccess();
+          } else {
+            setIsSessionActionInProgress(false); // Reset flag if verification was cancelled
           }
         }, 1000);
         
@@ -408,12 +359,90 @@ const SessionManager = () => {
     }
   };
 
-  // Cancel verification - stop camera when canceled
+  // Process the actual session start/end after successful face verification
+  const handleVerificationSuccess = async () => {
+    // First turn off camera
+    setCameraActive(false);
+    setShowFaceVerification(false);
+    
+    try {
+      if (pendingAction === 'start') {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/session/create`, {}, {
+          headers: { 'x-auth-token': token }
+        });
+        
+        // Update active session regardless of whether it's new or existing
+        setActiveSession(res.data);
+        
+        // Show appropriate message
+        if (res.status === 201) {
+          toast.success('Session started!');
+        } else {
+          toast.info('Resumed existing session');
+        }
+      } else if (pendingAction === 'end' && activeSession) {
+        // If recording, stop it before ending session
+        if (isRecording) {
+          stopRecording();
+        }
+        
+        await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/session/update/${activeSession._id}`, {
+          logoutTime: new Date()
+        }, {
+          headers: { 'x-auth-token': token }
+        });
+        setActiveSession(null);
+        toast.success('Session ended!');
+      }
+    } catch (error) {
+      toast.error(`Failed to ${pendingAction} session`);
+      console.error(error);
+    } finally {
+      setPendingAction(null);
+      setIsSessionActionInProgress(false);
+    }
+  };
+
+  // Start session after face verification - with additional safeguard
+  const startSession = async () => {
+    // Prevent multiple calls
+    if (isSessionActionInProgress) {
+      return;
+    }
+    
+    // Reset state
+    setVerificationMessage(null);
+    setPendingAction('start');
+    setShowFaceVerification(true);
+    setFaceMatched(false);
+    setCameraActive(true);
+    setIsVerifying(false); // Make sure isVerifying is reset
+  };
+
+  // End session after face verification - with additional safeguard
+  const endSession = async () => {
+    // Prevent multiple calls
+    if (isSessionActionInProgress) {
+      return;
+    }
+    
+    // Reset state
+    setVerificationMessage(null);
+    setPendingAction('end');
+    setShowFaceVerification(true);
+    setFaceMatched(false);
+    setCameraActive(true);
+    setIsVerifying(false); // Make sure isVerifying is reset
+  };
+
+  // Cancel verification - stop camera when canceled and reset all flags
   const cancelVerification = () => {
     setCameraActive(false);
     setShowFaceVerification(false);
     setPendingAction(null);
     setVerificationMessage(null);
+    setIsVerifying(false);
+    setIsSessionActionInProgress(false);
     toast.info('Action canceled');
   };
 
