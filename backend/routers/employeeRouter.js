@@ -67,117 +67,63 @@ router.get('/getbyid/:id', (req, res) => {
 });
 
 
-router.post('/verify-face', (req, res) => {
-    // Extract token from headers
-    const token = req.headers['x-auth-token'];
-
-    if (!token) {
-        return res.status(401).json({ message: 'Authorization token required' });
-    }
-    // console.log(req.body);
-
+router.post('/verify-face', verifyToken, async (req, res) => {
     try {
-        // Verify the token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        // Get the submitted face descriptor
-        let { descriptor } = req.body;
-
-        // Convert descriptor object to array if needed
-        if (descriptor && typeof descriptor === 'object' && !Array.isArray(descriptor)) {
-            // Convert object with numeric keys to array
-            const descriptorArray = [];
-            const keys = Object.keys(descriptor).sort((a, b) => parseInt(a) - parseInt(b));
-
-            for (const key of keys) {
-                descriptorArray.push(descriptor[key]);
-            }
-            descriptor = descriptorArray;
-        }
-
-        if (!descriptor || !Array.isArray(descriptor)) {
-            return res.status(400).json({
-                message: 'Invalid face descriptor format',
-                verified: false
+        const { descriptor } = req.body;
+        const employeeId = req.user.id;
+        
+        if (!descriptor || !employeeId) {
+            return res.status(400).json({ 
+                verified: false, 
+                message: 'Missing descriptor or employee ID' 
             });
         }
-
-        // console.log("Descriptor length:", descriptor.length);
-        // console.log(decoded);
-
-        // Find the user by ID from the token
-        Model.findById(decoded.id)
-            .then((user) => {
-                if (!user) {
-                    return res.status(404).json({
-                        message: 'User not found',
-                        verified: false
-                    });
-                }
-
-                // Check if user has stored face descriptors
-                if (!user.faceDescriptor) {
-                    return res.status(400).json({
-                        message: 'No face descriptors registered for this user',
-                        verified: false
-                    });
-                }
-
-                // Compare submitted descriptor with stored descriptors
-                // Using Euclidean distance for face descriptor comparison
-                // A lower distance means more similar faces
-                const THRESHOLD = 0.6; // Adjust threshold based on testing
-
-                // Convert the user's faceDescriptor to array if it's an object with numeric keys
-                let storedDescriptorArray;
-                if (typeof user.faceDescriptor === 'object' && !Array.isArray(user.faceDescriptor)) {
-                    storedDescriptorArray = [];
-                    const keys = Object.keys(user.faceDescriptor).sort((a, b) => parseInt(a) - parseInt(b));
-                    for (const key of keys) {
-                        storedDescriptorArray.push(user.faceDescriptor[key]);
-                    }
-                } else if (Array.isArray(user.faceDescriptor)) {
-                    storedDescriptorArray = user.faceDescriptor;
-                } else {
-                    return res.status(400).json({
-                        message: 'Invalid face descriptor format stored for user',
-                        verified: false
-                    });
-                }
-
-                // Calculate Euclidean distance between descriptors
-                const distance = calculateDistance(descriptor, storedDescriptorArray);
-                console.log("Distance:", distance);
-
-                // Determine if the face matches based on distance threshold
-                const isMatch = distance < THRESHOLD;
-                const confidence = 1 - (distance / THRESHOLD);
-
-                if (isMatch) {
-                    res.status(200).json({
-                        message: 'Face verification successful',
-                        verified: true,
-                        confidence: confidence
-                    });
-                } else {
-                    res.status(401).json({
-                        message: 'Face verification failed',
-                        verified: false,
-                        confidence: confidence
-                    });
-                }
-            })
-            .catch((err) => {
-                console.error('Error during face verification:', err);
-                res.status(500).json({
-                    message: 'Face verification error',
-                    verified: false,
-                    error: err.message
-                });
+        
+        // Find the employee
+        const employee = await Model.findById(employeeId);
+        
+        if (!employee || !employee.faceDescriptor) {
+            return res.status(400).json({ 
+                verified: false, 
+                message: 'No face data available for this employee' 
             });
-    } catch (err) {
-        console.error('Token verification error:', err);
-        res.status(401).json({ message: 'Invalid or expired token', verified: false });
+        }
+        
+        // Convert stored string descriptor back to Float32Array
+        const storedDescriptor = JSON.parse(employee.faceDescriptor);
+        
+        // Calculate Euclidean distance (lower = more similar)
+        // Convert both to normalized arrays
+        const storedArray = Object.values(storedDescriptor);
+        const detectedArray = Object.values(descriptor);
+        
+        // Calculate distance
+        let distance = 0;
+        for (let i = 0; i < storedArray.length; i++) {
+            distance += Math.pow(storedArray[i] - detectedArray[i], 2);
+        }
+        distance = Math.sqrt(distance);
+        
+        // Adjust threshold as needed after testing
+        // Typical thresholds: 0.5-0.6 (lower = stricter)
+        const threshold = 0.5;
+        const verified = distance < threshold;
+        
+        // Log for debugging
+        console.log(`Face verification for employee ${employeeId}: distance=${distance.toFixed(4)}, verified=${verified}`);
+        
+        // Return result
+        return res.json({ 
+            verified, 
+            confidence: 1 - distance,
+            message: verified ? 'Face verified' : 'Face verification failed' 
+        });
+    } catch (error) {
+        console.error('Face verification error:', error);
+        res.status(500).json({ 
+            verified: false, 
+            message: 'Server error during face verification' 
+        });
     }
 });
 

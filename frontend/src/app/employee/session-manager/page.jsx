@@ -602,6 +602,18 @@ const SessionManager = () => {
               </button>
             )}
           </div>
+          
+          {/* Face Verification Tips (new) */}
+          <div className="bg-blue-50 p-4 rounded-lg mb-4">
+            <h3 className="text-lg font-semibold mb-2">Face Verification Tips</h3>
+            <ul className="list-disc pl-5 text-sm space-y-1">
+              <li>Ensure your face is well-lit from the front</li>
+              <li>Remove glasses, hats, and face coverings</li>
+              <li>Position your face in the center of the frame</li>
+              <li>Keep still during verification</li>
+              <li>Make sure your face isn't too close or too far from the camera</li>
+            </ul>
+          </div>
         </div>
       ) : (
         <>
