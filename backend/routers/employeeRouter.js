@@ -74,6 +74,7 @@ router.post('/verify-face', verifyToken, async (req, res) => {
     
     // Use the client-supplied minConfidence or default to 0.6
     const confidenceThreshold = minConfidence || 0.6;
+    console.log(`Confidence threshold: ${confidenceThreshold}`);
     
     if (!descriptor || !employeeId) {
       return res.status(400).json({ 
