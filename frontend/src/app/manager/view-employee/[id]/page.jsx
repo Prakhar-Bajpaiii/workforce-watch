@@ -20,8 +20,6 @@ const ViewEmployee = () => {
   useEffect(() => {
     if (id) {
       setIsLoading(true);
-      // console.log(token);
-      
       
       // Create promises for all initial data requests
       const fetchPromises = [
@@ -270,59 +268,31 @@ const ViewEmployee = () => {
                         </div>
                       </div>
                       
-                      {/* Recordings */}
+                      {/* Recordings - Updated to show only screen recordings with audio */}
                       <div>
                         <h4 className="text-sm font-semibold text-gray-700 mb-1">Recordings</h4>
-                        <div className="space-y-2">
-                          {/* Screen Recordings */}
-                          <div>
-                            <div className="flex items-center text-xs text-gray-600">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                              </svg>
-                              Screen: {session.screenRecordings?.length || 0}
-                            </div>
-                            {session.screenRecordings?.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {session.screenRecordings.map((recording, idx) => (
-                                  <a 
-                                    key={`screen-${idx}`} 
-                                    href={recording.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-xs bg-blue-50 p-1 rounded flex items-center hover:bg-blue-100"
-                                  >
-                                    <span className="truncate">View #{idx + 1}</span>
-                                  </a>
-                                ))}
-                              </div>
-                            )}
+                        <div>
+                          <div className="flex items-center text-xs text-gray-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            Screen Recordings with Audio: {session.screenRecordings?.length || 0}
                           </div>
-                          
-                          {/* Audio Recordings */}
-                          <div>
-                            <div className="flex items-center text-xs text-gray-600">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                              </svg>
-                              Audio: {session.audioRecordings?.length || 0}
+                          {session.screenRecordings?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {session.screenRecordings.map((recording, idx) => (
+                                <a 
+                                  key={`screen-${idx}`} 
+                                  href={recording.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-xs bg-blue-50 p-1 rounded flex items-center hover:bg-blue-100"
+                                >
+                                  <span className="truncate">Recording #{idx + 1}</span>
+                                </a>
+                              ))}
                             </div>
-                            {session.audioRecordings?.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {session.audioRecordings.map((recording, idx) => (
-                                  <a 
-                                    key={`audio-${idx}`} 
-                                    href={recording.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-xs bg-blue-50 p-1 rounded flex items-center hover:bg-blue-100"
-                                  >
-                                    <span className="truncate">Listen #{idx + 1}</span>
-                                  </a>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>

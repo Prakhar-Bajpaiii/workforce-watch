@@ -121,51 +121,44 @@ const SessionManager = () => {
   }, [isRecording]);
 
   // Start screen and/or audio recording
-  const startRecording = async (type = 'both') => {
+  const startRecording = async (type = 'screen') => {
     try {
       setRecordingType(type);
       const recordingOptions = { mimeType: 'video/webm;codecs=vp9,opus' };
       const recordedChunks = [];
       
-      // Get screen or audio stream based on type
-      let stream = null;
+      // Get screen stream
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { 
+          cursor: 'always',
+          displaySurface: 'monitor',
+          logicalSurface: true,
+        },
+        audio: false, // We'll get audio from the microphone instead
+      });
+      screenStreamRef.current = screenStream;
       
-      if (type === 'screen' || type === 'both') {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { 
-            cursor: 'always',
-            displaySurface: 'monitor',
-            logicalSurface: true,
-          },
-          audio: type === 'both', // Only capture audio if type is 'both'
-        });
-        screenStreamRef.current = screenStream;
-        
-        // Add screen ended event listener
-        screenStream.getVideoTracks()[0].addEventListener('ended', () => {
-          stopRecording();
-        });
-        
-        stream = screenStream;
-      }
+      // Add screen ended event listener
+      screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+        stopRecording();
+      });
       
-      if (type === 'audio' || (type === 'both' && !stream.getAudioTracks().length)) {
-        // If we're doing both but screen didn't give us audio, get it separately
-        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioStreamRef.current = audioStream;
-        
-        if (type === 'both' && stream) {
-          // Combine screen and audio streams
-          const tracks = [...stream.getTracks(), ...audioStream.getAudioTracks()];
-          combinedStreamRef.current = new MediaStream(tracks);
-          stream = combinedStreamRef.current;
-        } else {
-          stream = audioStream;
-        }
-      }
+      // Always get microphone audio
+      const audioStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100,
+        } 
+      });
+      audioStreamRef.current = audioStream;
       
-      // Create media recorder
-      const mediaRecorder = new MediaRecorder(stream, recordingOptions);
+      // Combine screen and audio streams
+      const tracks = [...screenStream.getTracks(), ...audioStream.getAudioTracks()];
+      combinedStreamRef.current = new MediaStream(tracks);
+      
+      // Create media recorder with combined stream
+      const mediaRecorder = new MediaRecorder(combinedStreamRef.current, recordingOptions);
       
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -179,7 +172,7 @@ const SessionManager = () => {
         // Upload recording if we have an active session
         if (activeSession) {
           const recordingBlob = new Blob(recordedChunks, { type: 'video/webm' });
-          await saveRecording(recordingBlob, type);
+          await saveRecording(recordingBlob, 'screen'); // Always save as 'screen' type
         }
         
         // Clean up streams
@@ -203,7 +196,7 @@ const SessionManager = () => {
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start(1000); // Capture in 1 second chunks
       setIsRecording(true);
-      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} recording started`);
+      toast.success('Screen recording with audio started');
       
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -226,8 +219,8 @@ const SessionManager = () => {
     try {
       // Create form data with recording
       const formData = new FormData();
-      formData.append('recording', blob, `${type}_recording_${Date.now()}.webm`);
-      formData.append('type', type);
+      formData.append('recording', blob, `screen_recording_${Date.now()}.webm`);
+      formData.append('type', 'screen'); // Always save as screen type
       formData.append('sessionId', activeSession._id);
       
       // Upload to server
@@ -486,7 +479,7 @@ const SessionManager = () => {
           <div>
             <div className="flex items-center mb-2">
               <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse mr-2"></div>
-              <span>Recording {recordingType} - {formatRecordingTime(recordingTime)}</span>
+              <span>Recording screen with audio - {formatRecordingTime(recordingTime)}</span>
             </div>
             <button 
               onClick={stopRecording}
@@ -500,37 +493,15 @@ const SessionManager = () => {
             </button>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            <button 
-              onClick={() => startRecording('screen')}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Record Screen
-            </button>
-            
-            <button 
-              onClick={() => startRecording('audio')}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-              Record Audio
-            </button>
-            
-            <button 
-              onClick={() => startRecording('both')}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Record Screen & Audio
-            </button>
-          </div>
+          <button 
+            onClick={() => startRecording('screen')}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Record Screen with Audio
+          </button>
         )}
       </div>
     );
