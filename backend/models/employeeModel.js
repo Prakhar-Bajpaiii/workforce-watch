@@ -1,21 +1,31 @@
-const { model, Schema, Types } = require('../connection');
+const mongoose = require('mongoose');
 
-const mySchema = new Schema({
-    name: String,
-    email: String,
+const employeeSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true
+    },
     contact: String,
     password: String,
     shift: String,
     designation: String,
-    faceDescriptor: Array,
+    faceDescriptor: {
+        type: String, // Store as string, not as array
+        required: true
+    },
     worklocation: String,
     gender: String,
     dateofBirth: String,
     DateofJoining: String,
     team: String,
     Address: String,   
-    manager: { type: Types.ObjectId, ref: 'user' },
+    manager: { type: mongoose.Types.ObjectId, ref: 'user' },
     createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = model('employee', mySchema);
+module.exports = mongoose.model('Employee', employeeSchema);

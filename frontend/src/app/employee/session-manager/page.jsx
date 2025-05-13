@@ -310,17 +310,22 @@ const SessionManager = () => {
     });
     
     try {
-      // Server-side verification:
+      // Server-side verification with 60% confidence threshold:
       const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/employee/verify-face`, {
-        descriptor: detectedDescriptor
+        descriptor: detectedDescriptor,
+        minConfidence: 0.6 // Changed from 0.9 to 0.6 (60%)
       }, {
         headers: { 'x-auth-token': token }
       });
       
+      // Display confidence level to help with debugging
+      const confidencePercent = res.data.confidence ? 
+        Math.round(res.data.confidence * 100) : 0;
+      
       if (res.data.verified) {
         setVerificationMessage({
           type: 'success',
-          text: 'Face verified successfully!'
+          text: `Face verified successfully! (${confidencePercent}% match)`
         });
         setFaceMatched(true);
         
@@ -341,7 +346,7 @@ const SessionManager = () => {
       } else {
         setVerificationMessage({
           type: 'error',
-          text: 'Face verification failed. Please try again.'
+          text: `Face verification failed. Confidence: ${confidencePercent}% (required: 60%)`
         });
         
         setIsVerifying(false); // Allow retry
@@ -570,6 +575,7 @@ const SessionManager = () => {
                   onFaceDetected={handleFaceDetected}
                   isProcessing={isVerifying}
                   isActive={cameraActive && modelsLoaded}
+                  minConfidence={0.9} // Increased from default 0.6 to 0.9 (90%)
                 />
               ) : (
                 <div className="bg-yellow-100 p-4 rounded-lg mb-4">
@@ -603,14 +609,15 @@ const SessionManager = () => {
             )}
           </div>
           
-          {/* Face Verification Tips (new) */}
+          {/* Face Verification Tips (updated for lower confidence) */}
           <div className="bg-blue-50 p-4 rounded-lg mb-4">
-            <h3 className="text-lg font-semibold mb-2">Face Verification Tips</h3>
+            <h3 className="text-lg font-semibold mb-2">Face Verification Tips (60% Confidence Required)</h3>
             <ul className="list-disc pl-5 text-sm space-y-1">
-              <li>Ensure your face is well-lit from the front</li>
+              <li>Ensure your face is <strong>well-lit from the front</strong></li>
               <li>Remove glasses, hats, and face coverings</li>
               <li>Position your face in the center of the frame</li>
               <li>Keep still during verification</li>
+              <li>Maintain a neutral facial expression</li>
               <li>Make sure your face isn't too close or too far from the camera</li>
             </ul>
           </div>

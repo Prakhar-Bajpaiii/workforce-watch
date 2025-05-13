@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { useFormik } from 'formik';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import * as Yup from 'yup';
 import FaceRecognition from '@/components/FaceRecognition';
@@ -12,6 +12,9 @@ function Signup() {
   const [faceDescriptor, setFaceDescriptor] = useState(null);
   const [showFaceCapture, setShowFaceCapture] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [captureEnabled, setCaptureEnabled] = useState(false);
+  const currentDescriptorRef = useRef(null);
 
   const LoginSchema = Yup.object().shape({
     email: Yup.string()
@@ -51,10 +54,11 @@ function Signup() {
         return;
       }
 
-      // Add face descriptor to form data
+      // Convert face descriptor to string format for database storage
+      // This solves the "Cast to string failed" error
       const submitData = { 
         ...values,
-        faceDescriptor: Array.from(faceDescriptor)
+        faceDescriptor: JSON.stringify(Array.from(faceDescriptor))
       };
 
       axios.post(`${process.env.NEXT_PUBLIC_API_URL}/employee/add`, submitData, {
@@ -67,22 +71,54 @@ function Signup() {
           router.push('/manager/manage-employee');
         }).catch((err) => {
           console.error(err);
-          toast.error('Something went wrong');
+          toast.error('Error registering employee: ' + (err.response?.data?.message || 'Something went wrong'));
         });
     },
     validationSchema: LoginSchema
   });
 
   const handleFaceDetected = (descriptor) => {
-    if (registrationComplete) return; // Ignore further detections once complete
+    // Store the current face descriptor but don't complete registration yet
+    currentDescriptorRef.current = descriptor;
+    setFaceDetected(true);
+  };
+
+  // New function to handle manual capture
+  const handleCaptureClick = () => {
+    if (!currentDescriptorRef.current) {
+      toast.error('No face detected. Please ensure face is clearly visible.');
+      return;
+    }
+    
+    // Make sure the descriptor is a proper Float32Array or Array
+    let descriptor;
+    if (currentDescriptorRef.current instanceof Float32Array) {
+      // Already a Float32Array, just use it
+      descriptor = currentDescriptorRef.current;
+    } else if (typeof currentDescriptorRef.current === 'object') {
+      // Convert object to array if needed
+      descriptor = Array.from(Object.values(currentDescriptorRef.current));
+    } else {
+      toast.error('Invalid face data format. Please try again.');
+      return;
+    }
+    
+    // Set the face descriptor for registration
     setFaceDescriptor(descriptor);
     setRegistrationComplete(true);
-    setShowFaceCapture(false); // Hide camera after successful registration
-    toast.success('Face registered successfully');
+    
+    // Provide success feedback
+    toast.success('Face captured successfully!');
   };
 
   const toggleFaceCapture = () => {
     setShowFaceCapture(!showFaceCapture);
+    
+    // Reset face detection state when toggling
+    if (!showFaceCapture) {
+      setFaceDetected(false);
+      setCaptureEnabled(false);
+    }
   };
 
   return (
@@ -247,7 +283,48 @@ function Signup() {
             
             {showFaceCapture && (
               <div className="mb-4 border rounded-lg p-2">
-                <FaceRecognition onFaceDetected={handleFaceDetected} />
+                {/* Pass the handleFaceDetected callback and status indicators */}
+                <FaceRecognition 
+                  onFaceDetected={handleFaceDetected} 
+                  isProcessing={false}
+                  minConfidence={0.7}
+                />
+                
+                {/* Face detection status */}
+                <div className={`mt-2 p-2 rounded ${faceDetected ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                  <div className="flex items-center">
+                    {faceDetected ? (
+                      <>
+                        <span className="text-green-700 mr-2">✓</span>
+                        <span className="text-green-700">Face detected! You can capture now.</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-yellow-700 mr-2">⚠</span>
+                        <span className="text-yellow-700">Position face in frame...</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Manual capture button */}
+                <div className="mt-3 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={handleCaptureClick}
+                    disabled={!faceDetected}
+                    className={`px-4 py-2 rounded-lg flex items-center ${
+                      faceDetected 
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                    </svg>
+                    Capture Face
+                  </button>
+                </div>
               </div>
             )}
             
@@ -267,6 +344,7 @@ function Signup() {
                 ? 'bg-blue-600 text-white hover:bg-blue-700' 
                 : 'bg-gray-400 text-gray-700 cursor-not-allowed'
             } transition`}
+            disabled={!registrationComplete}
           >
             Add Employee
           </button>
